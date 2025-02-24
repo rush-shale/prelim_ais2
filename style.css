@@ -4,10 +4,10 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #f4f4f4;
+    background: url('image/lester.jpg') no-repeat center center/cover;
     flex-direction: column;
-    
 }
+
 .container {
     background: white;
     padding: 20px;
@@ -16,6 +16,7 @@ body {
     width: 300px;
     text-align: center;
 }
+
 input, button {
     width: 100%;
     padding: 10px;
@@ -23,12 +24,14 @@ input, button {
     border: 1px solid #ccc;
     border-radius: 5px;
 }
+
 button {
     background-color: #28a745;
     color: white;
     border: none;
     cursor: pointer;
 }
+
 .hidden {
     display: none;
 }
