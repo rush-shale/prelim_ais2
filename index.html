@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="login-container" class="container">
+        <h2>Login</h2>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <p id="error-message" style="color: red;"></p>
+        <p id="timer-message" style="color: red; display: none;"></p>
+    </div>
+
+    <div id="password-manager" class="container hidden">
+        <h2>Password Manager</h2>
+        <input type="text" id="site" placeholder="Website">
+        <input type="text" id="user" placeholder="Username">
+        <input type="password" id="pass" placeholder="Password">
+        <button onclick="savePassword()">Save</button>
+        <h3>Saved Passwords</h3>
+        <ul id="password-list"></ul>
+    </div>
+
+    <script>
+        let attemptCounter = 0;
+        const storedUsers = { "admin": "password123" };
+        const passwords = [];
+        let lockoutTime = null;
+
+        document.getElementById("login-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+            
+            let username = document.getElementById("username").value;
+            let password = document.getElementById("password").value;
+            let errorMessage = document.getElementById("error-message");
+            let timerMessage = document.getElementById("timer-message");
+
+            console.log('Login attempt:', username, password);  // Debugging log
+
+            // Check if the user is in lockout
+            if (lockoutTime !== null) {
+                const timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
+                console.log('Lockout time:', timeLeft);  // Debugging log
+                if (timeLeft > 0) {
+                    timerMessage.textContent = `Too many failed attempts. Please try again in ${timeLeft} seconds.`;
+                    timerMessage.style.display = 'block';
+                    return;
+                }
+            }
+
+            attemptCounter++;
+            
+            if (attemptCounter > 3) {
+                // Lock the user for 30 seconds after 3 failed attempts
+                lockoutTime = Date.now() + 30000; // 30 seconds from now
+                timerMessage.textContent = "Too many failed attempts. Please try again in 30 seconds.";
+                timerMessage.style.display = 'block';
+                errorMessage.textContent = ""; // Clear any previous error messages
+                console.log('Failed attempts exceeded, lockout started.'); // Debugging log
+                return;
+            }
+            
+            if (storedUsers[username] && storedUsers[username] === password) {
+                document.getElementById("login-container").classList.add("hidden");
+                document.getElementById("password-manager").classList.remove("hidden");
+                timerMessage.style.display = 'none'; // Hide the timer message
+                attemptCounter = 0; // Reset the failed attempt counter on successful login
+                console.log('Login successful!'); // Debugging log
+            } else {
+                errorMessage.textContent = "Invalid username or password.";
+                timerMessage.style.display = 'none'; // Hide the timer message if login fails
+                console.log('Invalid credentials'); // Debugging log
+            }
+        });
+
+        function savePassword() {
+            let site = document.getElementById("site").value;
+            let user = document.getElementById("user").value;
+            let pass = document.getElementById("pass").value;
+            
+            if (site && user && pass) {
+                passwords.push({ site, user, pass });
+                displayPasswords();
+                document.getElementById("site").value = "";
+                document.getElementById("user").value = "";
+                document.getElementById("pass").value = "";
+            }
+        }
+
+        function displayPasswords() {
+            let list = document.getElementById("password-list");
+            list.innerHTML = ""; // Clear the list before adding new items.
+            passwords.forEach((entry, index) => {
+                let li = document.createElement("li");
+                li.textContent = `${entry.site} - ${entry.user} - ${entry.pass}`;
+                list.appendChild(li);
+            });
+        }
+
+        // Check for lockout every second to update the timer message
+        setInterval(() => {
+            if (lockoutTime !== null) {
+                const timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
+                if (timeLeft <= 0) {
+                    lockoutTime = null; // Unlock the user after 30 seconds
+                    document.getElementById("timer-message").style.display = 'none';
+                }
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
