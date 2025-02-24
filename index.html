@@ -16,7 +16,7 @@
             flex-direction: column;
         }
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0);
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
@@ -27,12 +27,12 @@
             width: 100%;
             padding: 10px;
             margin: 5px 0;
-            border: 1px solid #ccc;
+            border: 1px solid #cccccc00;
             border-radius: 5px;
         }
         button {
-            background-color: #28a745;
-            color: white;
+            background-color: #28a74600;
+            color: rgba(255, 255, 255, 0.973);
             border: none;
             cursor: pointer;
         }
@@ -122,7 +122,7 @@
 
             attemptCounter++;
             if (attemptCounter > 3) {
-                lockoutTime = Date.now() + 20000;
+                lockoutTime = Date.now() + 20;
                 timerMessage.textContent = "Too many failed attempts. Please try again in 20 seconds.";
                 timerMessage.style.display = 'block';
                 errorMessage.textContent = "";
