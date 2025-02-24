@@ -35,6 +35,7 @@
         <button onclick="savePassword()">Save</button>
         <h3>Saved Passwords</h3>
         <ul id="password-list"></ul>
+        <button onclick="logout()">Logout</button>
     </div>
 
     <script>
@@ -94,6 +95,11 @@
                 li.textContent = `${entry.site} - ${entry.user} - ${entry.pass}`;
                 list.appendChild(li);
             });
+        }
+
+        function logout() {
+            document.getElementById("password-manager").classList.add("hidden");
+            document.getElementById("login-container").classList.remove("hidden");
         }
     </script>
 </body>
