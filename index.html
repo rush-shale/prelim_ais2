@@ -23,6 +23,8 @@
             <input type="text" id="username" placeholder="Username" required>
             <input type="password" id="password" placeholder="Password" required>
             <button type="submit">Login</button>
+            <p id="error-message" style="color: red;"></p>
+            <p id="timer-message" style="color: red; display: none;"></p>
         </form>
         <p>Don't have an account? <a href="#" onclick="showSignup()">Sign up now</a></p>
     </div>
@@ -39,8 +41,10 @@
     </div>
 
     <script>
-        let users = JSON.parse(localStorage.getItem('users')) || {}; // Store users securely
+        let users = JSON.parse(localStorage.getItem('users')) || {}; 
         const passwords = [];
+        let attemptCounter = 0;
+        let lockoutTime = null;
 
         function showSignup() {
             document.getElementById("signup-container").classList.remove("hidden");
@@ -58,7 +62,7 @@
             if (users[newUsername]) {
                 alert("Username already taken!");
             } else {
-                users[newUsername] = btoa(newPassword); // Simple encoding (for demo only, use proper encryption)
+                users[newUsername] = btoa(newPassword);
                 localStorage.setItem('users', JSON.stringify(users));
                 alert("Signup successful! Please login.");
                 showLogin();
@@ -69,11 +73,35 @@
             event.preventDefault();
             let username = document.getElementById("username").value;
             let password = document.getElementById("password").value;
+            let errorMessage = document.getElementById("error-message");
+            let timerMessage = document.getElementById("timer-message");
+
+            if (lockoutTime !== null) {
+                const timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
+                if (timeLeft > 0) {
+                    timerMessage.textContent = `Too many failed attempts. Please try again in ${timeLeft} seconds.`;
+                    timerMessage.style.display = 'block';
+                    return;
+                }
+            }
+
+            attemptCounter++;
+            if (attemptCounter > 3) {
+                lockoutTime = Date.now() + 20000;
+                timerMessage.textContent = "Too many failed attempts. Please try again in 20 seconds.";
+                timerMessage.style.display = 'block';
+                errorMessage.textContent = "";
+                return;
+            }
+
             if (users[username] && atob(users[username]) === password) {
                 document.getElementById("login-container").classList.add("hidden");
                 document.getElementById("password-manager").classList.remove("hidden");
+                timerMessage.style.display = 'none';
+                attemptCounter = 0;
             } else {
-                alert("Invalid username or password");
+                errorMessage.textContent = "Invalid username or password.";
+                timerMessage.style.display = 'none';
             }
         });
 
@@ -101,6 +129,17 @@
             document.getElementById("password-manager").classList.add("hidden");
             document.getElementById("login-container").classList.remove("hidden");
         }
+
+        setInterval(() => {
+            if (lockoutTime !== null) {
+                const timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
+                if (timeLeft <= 0) {
+                    lockoutTime = null;
+                    document.getElementById("timer-message").style.display = 'none';
+                    attemptCounter = 0;
+                }
+            }
+        }, 1000);
     </script>
 </body>
 </html>
