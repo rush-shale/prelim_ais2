@@ -122,8 +122,8 @@
 
             attemptCounter++;
             if (attemptCounter > 3) {
-                lockoutTime = Date.now() + 20;
-                timerMessage.textContent = "Too many failed attempts. Please try again in 20 seconds.";
+                lockoutTime = Date.now() + 10000;
+                timerMessage.textContent = "Too many failed attempts. Please try again in 10 seconds.";
                 timerMessage.style.display = 'block';
                 errorMessage.textContent = "";
                 return;
