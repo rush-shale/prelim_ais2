@@ -5,14 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cybersecurity Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-    
-           
-        
-    </style>
     <script>
         let attemptCounter = 0;
-        let lockoutTime = null;
+        let lockoutTime = localStorage.getItem('lockoutTime') ? parseInt(localStorage.getItem('lockoutTime')) : null;
         let blockedUsers = JSON.parse(localStorage.getItem('blockedUsers')) || {};
 
         function logActivity(action) {
@@ -47,6 +42,22 @@
             }
         }
 
+        function startLockoutCountdown() {
+            let errorMessage = document.getElementById("error-message");
+            let interval = setInterval(() => {
+                let timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
+                if (timeLeft > 0) {
+                    errorMessage.textContent = `Too many failed attempts. Try again in ${timeLeft} seconds.`;
+                } else {
+                    clearInterval(interval);
+                    lockoutTime = null;
+                    localStorage.removeItem('lockoutTime');
+                    attemptCounter = 0;
+                    errorMessage.textContent = "";
+                }
+            }, 1000);
+        }
+
         function login(event) {
             event.preventDefault();
             let username = document.getElementById("username").value;
@@ -59,21 +70,16 @@
                 return;
             }
 
-            if (lockoutTime !== null) {
-                const timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
-                if (timeLeft > 0) {
-                    errorMessage.textContent = `Too many failed attempts. Try again in ${timeLeft} seconds.`;
-                    return;
-                } else {
-                    lockoutTime = null;
-                    attemptCounter = 0;
-                }
+            if (lockoutTime !== null && Date.now() < lockoutTime) {
+                startLockoutCountdown();
+                return;
             }
 
             attemptCounter++;
             if (attemptCounter >= 3) {
-                lockoutTime = Date.now() + 20000;
-                errorMessage.textContent = "Too many failed attempts. Try again in 20 seconds.";
+                lockoutTime = Date.now() + 30000;
+                localStorage.setItem('lockoutTime', lockoutTime);
+                startLockoutCountdown();
                 logActivity(`User ${username} temporarily blocked for too many failed attempts.`);
                 return;
             }
