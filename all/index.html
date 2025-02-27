@@ -3,178 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>prelim @ ias2</title>
+    <title>Cybersecurity Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: url("image/lester.jpg") no-repeat center center/cover;
-            flex-direction: column;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
-            text-align: center;
-        }
-        input, button {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #cccccc00;
-            border-radius: 5px;
-        }
-        button {
-            background-color: #28a74600;
-            color: rgba(22, 21, 21, 0.993);
-            border: none;
-            cursor: pointer;
-        }
-        .hidden {
-            display: none;
-        }
-    </style>
-</head>
-<body>
-    <div id="signup-container" class="container">
-        <h2>Sign Up</h2>
-        <form id="signup-form">
-            <input type="text" id="new-username" placeholder="Username" required>
-            <input type="password" id="new-password" placeholder="Password" required>
-            <button type="submit">Sign Up</button>
-        </form>
-        <p>Already have an account? <a href="#" onclick="showLogin()">Login here</a></p>
-    </div>
-
-    <div id="login-container" class="container hidden">
-        <h2>Login</h2>
-        <form id="login-form">
-            <input type="text" id="username" placeholder="Username" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button type="submit">Login</button>
-            <p id="error-message" style="color: red;"></p>
-            <p id="timer-message" style="color: red; display: none;"></p>
-        </form>
-        <p>Don't have an account? <a href="#" onclick="showSignup()">Sign up now</a></p>
-    </div>
-
-    <div id="password-manager" class="container hidden">
-        <h2>Password Manager</h2>
-        <input type="text" id="site" placeholder="Website">
-        <input type="text" id="user" placeholder="Username">
-        <input type="password" id="pass" placeholder="Password">
-        <button onclick="savePassword()">Save</button>
-        <h3>Saved Passwords</h3>
-        <ul id="password-list"></ul>
-        <button onclick="logout()">Logout</button>
-    </div>
-
     <script>
-        let users = JSON.parse(localStorage.getItem('users')) || {}; 
-        const passwords = [];
         let attemptCounter = 0;
         let lockoutTime = null;
+        let blockedUsers = JSON.parse(localStorage.getItem('blockedUsers')) || {};
 
-        function showSignup() {
-            document.getElementById("signup-container").classList.remove("hidden");
-            document.getElementById("login-container").classList.add("hidden");
-        }
-        function showLogin() {
-            document.getElementById("signup-container").classList.add("hidden");
-            document.getElementById("login-container").classList.remove("hidden");
+        function logActivity(action) {
+            let logs = JSON.parse(localStorage.getItem('logs')) || [];
+            let timestamp = new Date().toLocaleString();
+            logs.push(`${timestamp} - ${action}`);
+            localStorage.setItem('logs', JSON.stringify(logs));
         }
 
-        document.getElementById("signup-form").addEventListener("submit", function(event) {
+        function displayLogs() {
+            let logList = document.getElementById("log-list");
+            let logs = JSON.parse(localStorage.getItem('logs')) || [];
+            logList.innerHTML = "";
+            logs.forEach(log => {
+                let li = document.createElement("li");
+                li.textContent = log;
+                logList.appendChild(li);
+            });
+        }
+
+        function clearLogs() {
+            localStorage.removeItem('logs');
+            displayLogs();
+        }
+
+        function blockUser() {
+            let username = prompt("Enter the username to block:");
+            if (username) {
+                blockedUsers[username] = true;
+                localStorage.setItem('blockedUsers', JSON.stringify(blockedUsers));
+                logActivity(`User ${username} has been manually blocked.`);
+            }
+        }
+
+        function login(event) {
+            event.preventDefault();
+            let username = document.getElementById("username").value;
+            let password = document.getElementById("password").value;
+            let users = JSON.parse(localStorage.getItem('users')) || {};
+            let errorMessage = document.getElementById("error-message");
+
+            if (blockedUsers[username]) {
+                errorMessage.textContent = "This account has been permanently blocked.";
+                return;
+            }
+
+            if (lockoutTime !== null) {
+                const timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
+                if (timeLeft > 0) {
+                    errorMessage.textContent = `Too many failed attempts. Try again in ${timeLeft} seconds.`;
+                    return;
+                } else {
+                    lockoutTime = null;
+                    attemptCounter = 0;
+                }
+            }
+
+            attemptCounter++;
+            if (attemptCounter >= 3) {
+                lockoutTime = Date.now() + 20000;
+                errorMessage.textContent = "Too many failed attempts. Try again in 20 seconds.";
+                logActivity(`User ${username} temporarily blocked for too many failed attempts.`);
+                return;
+            }
+
+            if (users[username] && atob(users[username]) === password) {
+                document.getElementById("login-container").classList.add("hidden");
+                document.getElementById("dashboard").classList.remove("hidden");
+                logActivity(`User ${username} logged in.`);
+                attemptCounter = 0;
+                displayLogs();
+            } else {
+                errorMessage.textContent = "Invalid username or password.";
+                if (attemptCounter >= 5) {
+                    blockedUsers[username] = true;
+                    localStorage.setItem('blockedUsers', JSON.stringify(blockedUsers));
+                    logActivity(`User ${username} permanently blocked due to repeated failed login attempts.`);
+                }
+            }
+        }
+
+        function signup(event) {
             event.preventDefault();
             let newUsername = document.getElementById("new-username").value;
             let newPassword = document.getElementById("new-password").value;
+            let users = JSON.parse(localStorage.getItem('users')) || {};
+            
             if (users[newUsername]) {
                 alert("Username already taken!");
             } else {
                 users[newUsername] = btoa(newPassword);
                 localStorage.setItem('users', JSON.stringify(users));
                 alert("Signup successful! Please login.");
-                showLogin();
-            }
-        });
-
-        document.getElementById("login-form").addEventListener("submit", function(event) {
-            event.preventDefault();
-            let username = document.getElementById("username").value;
-            let password = document.getElementById("password").value;
-            let errorMessage = document.getElementById("error-message");
-            let timerMessage = document.getElementById("timer-message");
-
-            if (lockoutTime !== null) {
-                const timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
-                if (timeLeft > 0) {
-                    timerMessage.textContent = `Too many failed attempts. Please try again in ${timeLeft} seconds.`;
-                    timerMessage.style.display = 'block';
-                    return;
-                }
-            }
-
-            attemptCounter++;
-            if (attemptCounter > 3) {
-                lockoutTime = Date.now() + 10000;
-                timerMessage.textContent = "Too many failed attempts. Please try again in 10 seconds.";
-                timerMessage.style.display = 'block';
-                errorMessage.textContent = "";
-                return;
-            }
-
-            if (users[username] && atob(users[username]) === password) {
-                document.getElementById("login-container").classList.add("hidden");
-                document.getElementById("password-manager").classList.remove("hidden");
-                timerMessage.style.display = 'none';
-                attemptCounter = 0;
-            } else {
-                errorMessage.textContent = "Invalid username or password.";
-                timerMessage.style.display = 'none';
-            }
-        });
-
-        function savePassword() {
-            let site = document.getElementById("site").value;
-            let user = document.getElementById("user").value;
-            let pass = document.getElementById("pass").value;
-            if (site && user && pass) {
-                passwords.push({ site, user, pass });
-                displayPasswords();
+                document.getElementById("signup-container").classList.add("hidden");
+                document.getElementById("login-container").classList.remove("hidden");
             }
         }
-
-        function displayPasswords() {
-            let list = document.getElementById("password-list");
-            list.innerHTML = "";
-            passwords.forEach((entry) => {
-                let li = document.createElement("li");
-                li.textContent = `${entry.site} - ${entry.user} - ${entry.pass}`;
-                list.appendChild(li);
-            });
-        }
-
-        function logout() {
-            document.getElementById("password-manager").classList.add("hidden");
-            document.getElementById("login-container").classList.remove("hidden");
-        }
-
-        setInterval(() => {
-            if (lockoutTime !== null) {
-                const timeLeft = Math.max(0, Math.floor((lockoutTime - Date.now()) / 1000));
-                if (timeLeft <= 0) {
-                    lockoutTime = null;
-                    document.getElementById("timer-message").style.display = 'none';
-                    attemptCounter = 0;
-                }
-            }
-        }, 1000);
     </script>
+</head>
+<body>
+    <div id="signup-container" class="container">
+        <h2>Sign Up</h2>
+        <form id="signup-form" onsubmit="signup(event)">
+            <input type="text" id="new-username" placeholder="Username" required>
+            <input type="password" id="new-password" placeholder="Password" required>
+            <button type="submit">Sign Up</button>
+        </form>
+        <p>Already have an account? <a href="#" onclick="document.getElementById('signup-container').classList.add('hidden'); document.getElementById('login-container').classList.remove('hidden');">Login here</a></p>
+    </div>
+
+    <div id="login-container" class="container hidden">
+        <h2>Login</h2>
+        <form id="login-form" onsubmit="login(event)">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+            <p id="error-message" style="color: red;"></p>
+        </form>
+        <p>Don't have an account? <a href="#" onclick="document.getElementById('login-container').classList.add('hidden'); document.getElementById('signup-container').classList.remove('hidden');">Sign up now</a></p>
+    </div>
+
+    <div id="dashboard" class="container hidden">
+        <h2>Dashboard</h2>
+        <h3>Activity Logs</h3>
+        <ul id="log-list"></ul>
+        <button onclick="clearLogs()">Clear Logs</button>
+        <button onclick="blockUser()">Block User</button>
+        <button onclick="logActivity('User logged out.'); location.reload();">Logout</button>
+    </div>
 </body>
 </html>

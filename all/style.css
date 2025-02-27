@@ -4,7 +4,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background: url('image/beetlejuice.png') no-repeat center center/cover;
+    background: url("image/lester.jpg") no-repeat center center/cover;
     flex-direction: column;
 }
 
@@ -26,8 +26,8 @@ input, button {
 }
 
 button {
-    background-color: #000000;
-    color: rgba(255, 255, 255, 0);
+    background-color: #ddd1d173;
+    color: rgba(230, 219, 219, 0.692);
     border: none;
     cursor: pointer;
 }
